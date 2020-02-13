@@ -5,7 +5,13 @@
 #Step : Add this song into the new Spotify Playlist
 
 import json
-from secrets import spotify_user_id
+import requests
+from secrets import spotify_user_id,spotify_token
+import google_auth_oauthlib.flow
+import googleclient.discovery
+import googleapiclient.errors
+
+
 class CreatePlaylist:
     def __init__(self):
         self.user_id = spotify_user_id
@@ -27,8 +33,32 @@ class CreatePlaylist:
         youtube_ client = googleapiclient.discovery.build(api_service_name,api_version,credentials=credentials)
 
         return youtube_client
+
+    #step 2 Grab your liked Videos
     def get_liked_videos(self):
-        pass
+          request =self.youtube_client.videos().list(
+              part = "snippet,contentDetails,statistics",
+              myRating="like"
+          )
+        response =request.execute()
+
+       for item in response["items"]:
+           video_title = item["snippet"]["title"]
+           youtube_url ="https://www.youtube.com/watch?={}".format(item["id"])
+
+            video = youtube_dl.youtubeDl({}).extract_info(youtube_url, download=False)
+            song_name = video["track"]
+            artist = video["artist"]
+
+              self.all_song_info[video_title] = {
+                  "youtube_url":youtube_url,
+                  "song_name":song_name,
+                  "artist":artist,
+                  "spotify_uri": self.get_spotify_uri(song_name,artist)
+              }
+
+        #Step 3: Create A new Playlist
+
     def create_playlist(self):
         request_body = json.dump({
            "name": "Youtube Liked Videos",
@@ -37,16 +67,7 @@ class CreatePlaylist:
         })
 
         query = "https://api.spotify.com/v1/users/{}/playlists".format(self.user_id)
-         response = requests.posts(
-             query,
-             data=request_body,
-             headers={
-                 "content-type":"application/json",
-                 "Authorization":"Bearer {}".format(spotify_token)
-             }
-         )
-        response_json = response.json()
-        return response_json["id"]
+
 
 
     # step 4 : search for the Song
